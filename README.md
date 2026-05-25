@@ -20,6 +20,15 @@ mypy --strict src
 pytest
 ```
 
+## Vérification Ticket 2
+
+Appliquer d'abord `src/db/migrations/0001_init.sql` dans Supabase, puis remplir
+`SUPABASE_URL` et `SUPABASE_SERVICE_KEY` dans `.env`.
+
+```bash
+python -m src.db.smoke_test
+```
+
 ## Règle produit
 
 Le système ne doit jamais envoyer d'email automatiquement.
