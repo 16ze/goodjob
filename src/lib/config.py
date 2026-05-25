@@ -36,11 +36,31 @@ class Settings(OpenAISettings):
     notion_database_id: str = Field(alias="NOTION_DATABASE_ID")
 
 
+class AuthSettings(BaseSettings):
+    """Auth dashboard — mot de passe unique + secret JWT."""
+
+    app_password: str = Field(default="", alias="APP_PASSWORD")
+    jwt_secret: str = Field(default="dev-secret-changeme-en-prod", alias="JWT_SECRET")
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
+
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
     """Retourne une configuration singleton pour garder un démarrage déterministe."""
 
     return Settings()
+
+
+@lru_cache(maxsize=1)
+def get_auth_settings() -> AuthSettings:
+    """Retourne les paramètres d'authentification du dashboard."""
+
+    return AuthSettings()
 
 
 @lru_cache(maxsize=1)

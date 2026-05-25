@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import re
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Protocol, cast
@@ -13,6 +14,21 @@ from src.lib.config import OpenAISettings, get_openai_settings
 from src.lib.logging import configure_logging, get_logger
 
 DEFAULT_SCORE_MODEL = "gpt-4.1-nano"
+
+_EMAIL_REGEX = re.compile(r"[\w.+\-]+@[\w\-]+(?:\.[a-zA-Z]{2,})+")
+_EMAIL_BLOCKLIST = frozenset({"noreply", "no-reply", "example", "test", "placeholder"})
+
+
+def extract_email_from_text(text: str) -> str | None:
+    """Extrait le premier email valide d'un texte en filtrant les faux positifs."""
+
+    for match in _EMAIL_REGEX.finditer(text):
+        email = match.group(0).lower()
+        local_part = email.split("@")[0]
+        if any(blocked in local_part for blocked in _EMAIL_BLOCKLIST):
+            continue
+        return email
+    return None
 LETTER_GENERATION_THRESHOLD = 65
 DEFAULT_LIMIT = 10
 PROMPT_PATH = Path(__file__).resolve().parents[2] / "prompts" / "score.md"
@@ -98,10 +114,10 @@ class OpenAIJobScorer:
         self._model = model
         self._instructions = instructions or load_score_instructions()
 
-    def score_offer(self, offer: OfferRow) -> ScoreResult | None:
+    def score_offer(self, offer: OfferRow, *, force: bool = False) -> ScoreResult | None:
         """Score une offre non scoree et ignore explicitement les offres deja traitees."""
 
-        if offer.score_match is not None:
+        if offer.score_match is not None and not force:
             logger.info(
                 "offer_scoring_skipped",
                 offer_id=offer.id,
@@ -162,6 +178,17 @@ def score_new_offers(
             score_match=score.score,
             raison_score=score.raison,
         )
+
+        if offer.email_destinataire is None and offer.description_brute:
+            extracted = extract_email_from_text(offer.description_brute)
+            if extracted is not None:
+                repository.update_offer_email(offer.id, extracted)
+                logger.info(
+                    "offer_email_extracted",
+                    offer_id=offer.id,
+                    email=extracted,
+                )
+
         scored_count += 1
 
     logger.info("offers_scoring_completed", offers_found=len(offers), offers_scored=scored_count)

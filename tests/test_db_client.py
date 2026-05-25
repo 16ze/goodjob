@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import date
+from typing import cast
 
 from postgrest.types import JSON
 from src.db.client import OfferUpsert, SupabaseOfferRepository, hash_url
@@ -54,6 +56,8 @@ class FakeSelectQuery:
     def __init__(self, data: object) -> None:
         self.filter_column: str | None = None
         self.filter_value: object | None = None
+        self.limit_count: int | None = None
+        self._data = data
         self.filter_query = FakeFilterQuery(data)
 
     def eq(self, column: str, value: object) -> FakeFilterQuery:
@@ -63,6 +67,10 @@ class FakeSelectQuery:
 
     def gte(self, column: str, value: object) -> FakeFilterQuery:
         return self.filter_query.gte(column, value)
+
+    def limit(self, count: int) -> FakeExecutableQuery:
+        self.limit_count = count
+        return FakeExecutableQuery(self._data)
 
 
 class FakeUpdateQuery:
@@ -274,3 +282,42 @@ def test_repository_updates_offer_letter() -> None:
     assert updated.lettre_generee == "{\"objet\":\"Candidature\"}"
     assert table.update_payload == {"lettre_generee": "{\"objet\":\"Candidature\"}"}
     assert table.update_query.filter_column == "id"
+
+
+def test_repository_marks_offer_sent() -> None:
+    row: dict[str, object] = {
+        "id": "5d9d9fd5-9200-4b0a-89de-4893450f7f72",
+        "source": "jobup",
+        "url": "https://example.com/jobs/8",
+        "url_hash": hash_url("https://example.com/jobs/8"),
+        "titre": "Conseiller de vente",
+        "statut": "envoye",
+        "email_destinataire": "rh@example.com",
+        "envoye_at": "2026-05-25T10:00:00+00:00",
+    }
+    table = FakeOffersTable(row)
+    repository = SupabaseOfferRepository(FakeSupabaseClient(table))
+
+    updated = repository.update_offer_sent(
+        "5d9d9fd5-9200-4b0a-89de-4893450f7f72",
+        email_destinataire="rh@example.com",
+    )
+
+    assert updated.statut == "envoye"
+    assert updated.email_destinataire == "rh@example.com"
+    assert table.update_payload is not None
+    update_payload = cast(Mapping[str, object], table.update_payload)
+    assert update_payload["statut"] == "envoye"
+    assert update_payload["email_destinataire"] == "rh@example.com"
+
+
+def test_repository_reads_default_parameters_when_empty() -> None:
+    table = FakeOffersTable({})
+    table.select_query = FakeSelectQuery([])
+    repository = SupabaseOfferRepository(FakeSupabaseClient(table))
+
+    parameters = repository.get_parameters()
+
+    assert parameters.actif is False
+    assert parameters.max_par_jour == 5
+    assert parameters.score_seuil == 65
