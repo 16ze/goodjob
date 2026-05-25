@@ -132,10 +132,12 @@ function statusLabel(statut: string): string {
 }
 
 export function App(): JSX.Element {
+  const queryClient = useQueryClient();
   const [authenticated, setAuthenticated] = useState(() => Boolean(getStoredToken()));
 
   const handleLogin = async (password: string): Promise<void> => {
     await login(password);
+    queryClient.clear();
     setAuthenticated(true);
   };
 
@@ -246,16 +248,20 @@ function Dashboard({ onLogout }: { onLogout: () => void }): JSX.Element {
     }));
   };
 
-  if (dashboardQuery.isLoading) {
+  const is401 =
+    dashboardQuery.isError &&
+    dashboardQuery.error instanceof ApiError &&
+    dashboardQuery.error.status === 401;
+
+  useEffect(() => {
+    if (is401) onLogout();
+  }, [is401, onLogout]);
+
+  if (dashboardQuery.isLoading || is401) {
     return <main className="screen-state">Chargement du cockpit GoodJob...</main>;
   }
 
   if (dashboardQuery.isError || dashboard === undefined) {
-    const is401 = dashboardQuery.error instanceof ApiError && dashboardQuery.error.status === 401;
-    if (is401) {
-      onLogout();
-      return <main className="screen-state">Session expirée…</main>;
-    }
     return (
       <main className="screen-state error">
         Impossible de charger le tableau de bord. Vérifie FastAPI et Supabase.
