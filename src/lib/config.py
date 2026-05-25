@@ -41,8 +41,8 @@ class AuthSettings(BaseSettings):
 
     app_password: str = Field(default="", alias="APP_PASSWORD")
     jwt_secret: str = Field(default="dev-secret-changeme-en-prod", alias="JWT_SECRET")
-    github_token: str = Field(default="", alias="GITHUB_TOKEN")
-    github_repo: str = Field(default="", alias="GITHUB_REPO")
+    github_token: str = Field(default="", alias="GH_TOKEN")
+    github_repo: str = Field(default="", alias="GH_REPO")
 
     model_config = SettingsConfigDict(
         env_file=".env",
