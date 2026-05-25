@@ -23,7 +23,7 @@ class DatabaseSettings(BaseSettings):
 class Settings(DatabaseSettings):
     """Configuration complète du pipeline validée au démarrage."""
 
-    anthropic_api_key: SecretStr = Field(alias="ANTHROPIC_API_KEY")
+    openai_api_key: SecretStr = Field(alias="OPENAI_API_KEY")
     gmail_client_id: str = Field(alias="GMAIL_CLIENT_ID")
     gmail_client_secret: SecretStr = Field(alias="GMAIL_CLIENT_SECRET")
     gmail_refresh_token: SecretStr = Field(alias="GMAIL_REFRESH_TOKEN")

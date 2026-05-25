@@ -11,7 +11,7 @@ Périmètre géo dur : codes postaux **2800–2900** (canton du Jura), **2350–
 Système semi-automatique de détection + préparation de candidatures :
 - Scrape quotidien des nouvelles offres "vendeur / vendeuse / conseiller·ère de vente" sur 4 sources
 - Filtrage géo + déduplication
-- Génération lettre personnalisée + score de matching par Claude
+- Génération lettre personnalisée + score de matching par OpenAI
 - Dashboard Notion avec validation humaine
 - Envoi MANUEL par Bryan (jamais d'envoi auto)
 
@@ -22,7 +22,7 @@ Système semi-automatique de détection + préparation de candidatures :
 - **Langage** : Python 3.11
 - **Scraping** : Playwright (mode headless, user-agent rotatif)
 - **Base de données** : Supabase (project: `goodjob`)
-- **IA** : Anthropic API (claude-sonnet-4-6 pour lettres, claude-haiku-4-5 pour scoring)
+- **IA** : OpenAI API (modèle économique pour scoring, modèle qualité pour lettres)
 - **Orchestration** : GitHub Actions (cron `0 6 * * *` UTC = 07:00 Paris/Suisse hiver, 08:00 été)
 - **Dashboard** : Notion (MCP) — base "Candidatures Suisse"
 - **Drafts** : Gmail API (création de brouillons, jamais d'envoi)
@@ -83,7 +83,7 @@ create index idx_date on offres(date_publication desc);
 - Stages, apprentissages CFC (sauf demande explicite)
 - Postes <50% si pas demandé
 
-## Scoring (Claude haiku)
+## Scoring (OpenAI)
 
 Prompt système attribue un score 0–100 sur :
 - Proximité géo (30 pts)
@@ -106,7 +106,7 @@ Seuil draft auto-généré : **score ≥ 65**.
 - `Notion` : créer base "Candidatures Suisse", insérer/maj pages
 - `Gmail` : créer drafts uniquement (jamais d'envoi)
 - `Vercel` : déploiement si UI Next.js (optionnel)
-- `Context7` : doc Playwright, Supabase, Anthropic SDK à jour
+- `Context7` : doc Playwright, Supabase, OpenAI SDK à jour
 
 ## Orchestration GitHub Actions
 
@@ -115,7 +115,7 @@ Workflow `.github/workflows/daily.yml` :
 - Steps : checkout → setup Python 3.11 → install deps → `playwright install chromium` → `python -m pipeline.run`
 - Secrets requis (Settings → Secrets and variables → Actions) :
   - `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`
-  - `ANTHROPIC_API_KEY`
+  - `OPENAI_API_KEY`
   - `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, `GMAIL_REFRESH_TOKEN`
   - `NOTION_TOKEN`, `NOTION_DATABASE_ID`
 - Quota : ~10 min/run × 30 runs/mois = 300 min, largement sous le plafond gratuit (2000 min/mois repo privé)
@@ -124,7 +124,7 @@ Workflow `.github/workflows/daily.yml` :
 
 1. `scrapers/run_all.py` → fetch toutes sources, insert dans `offres`
 2. `filtering/geo_filter.py` → marquer `ko_auto` les offres hors périmètre
-3. `ai/score.py` → score haiku sur les `nouveau`
+3. `ai/score.py` → score OpenAI sur les `nouveau`
 4. `ai/generate_letter.py` → pour les `score >= 65`, générer lettre + draft Gmail
 5. `sync/notion_sync.py` → push dans Notion avec lien CV adapté
 6. Email matinal récap : "X offres détectées, Y prêtes à valider"
@@ -139,7 +139,7 @@ Workflow `.github/workflows/daily.yml` :
 
 ## Roadmap
 
-- **J0–J2** : scraper jobup.ch + Supabase + scoring haiku — valider 1 cycle complet manuel
+- **J0–J2** : scraper jobup.ch + Supabase + scoring OpenAI — valider 1 cycle complet manuel
 - **J3–J4** : ajout jobs.ch + indeed.ch + dédup
 - **J5–J6** : génération lettre + draft Gmail + sync Notion
 - **J7** : ajout sites entreprises directs
