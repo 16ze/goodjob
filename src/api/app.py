@@ -723,16 +723,51 @@ def get_pipeline_logs(repository: RepositoryDep) -> list[PipelineRunDto]:
             created_at_str = created_at.isoformat()
         else:
             created_at_str = str(created_at) if created_at is not None else ""
+        log_id = log["id"]
+        count_result = log.get("count_result")
+        error = log.get("error")
         result.append(
             PipelineRunDto(
-                id=int(log["id"]),  # type: ignore[arg-type]
+                id=int(log_id) if isinstance(log_id, (int, str, float)) else 0,
                 action=str(log["action"]),
-                count_result=log.get("count_result"),  # type: ignore[arg-type]
-                error=log.get("error"),  # type: ignore[arg-type]
+                count_result=int(count_result) if isinstance(count_result, (int, float)) else None,
+                error=str(error) if error is not None else None,
                 created_at=created_at_str,
             )
         )
     return result
+
+
+class TriggerResultDto(BaseModel):
+    ok: bool
+    message: str
+
+
+@app.post("/api/pipeline/trigger", response_model=TriggerResultDto)
+async def trigger_github_workflow() -> TriggerResultDto:
+    """Déclenche le workflow GitHub Actions daily.yml via workflow_dispatch."""
+
+    auth_cfg = get_auth_settings()
+    if not auth_cfg.github_token or not auth_cfg.github_repo:
+        raise HTTPException(
+            status_code=503,
+            detail="GITHUB_TOKEN et GITHUB_REPO non configurés — impossible de déclencher le workflow.",
+        )
+    url = f"https://api.github.com/repos/{auth_cfg.github_repo}/actions/workflows/daily.yml/dispatches"
+    async with httpx.AsyncClient(timeout=15) as client:
+        resp = await client.post(
+            url,
+            headers={
+                "Authorization": f"Bearer {auth_cfg.github_token}",
+                "Accept": "application/vnd.github+json",
+                "X-GitHub-Api-Version": "2022-11-28",
+            },
+            json={"ref": "main"},
+        )
+    if resp.status_code == 204:
+        return TriggerResultDto(ok=True, message="Workflow lancé — il démarre dans quelques secondes.")
+    detail = resp.text[:300]
+    raise HTTPException(status_code=resp.status_code, detail=f"GitHub API: {detail}")
 
 
 @app.get("/{full_path:path}", include_in_schema=False)

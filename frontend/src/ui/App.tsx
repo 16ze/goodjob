@@ -54,6 +54,7 @@ import {
   testGmail,
   triggerLetters,
   triggerNotion,
+  triggerPipeline,
   triggerScore,
   uploadCV
 } from "./api";
@@ -897,6 +898,7 @@ function SettingsPanel({
   const [scoreResult, setScoreResult] = useState<PipelineResultDto | null>(null);
   const [lettersResult, setLettersResult] = useState<PipelineResultDto | null>(null);
   const [notionResult, setNotionResult] = useState<PipelineResultDto | null>(null);
+  const [triggerResult, setTriggerResult] = useState<{ ok: boolean; message: string } | null>(null);
 
   const gmailMutation = useMutation({
     mutationFn: testGmail,
@@ -921,6 +923,11 @@ function SettingsPanel({
   const notionMutation = useMutation({
     mutationFn: triggerNotion,
     onSuccess: setNotionResult
+  });
+
+  const triggerMutation = useMutation({
+    mutationFn: triggerPipeline,
+    onSuccess: setTriggerResult
   });
 
   const logsQuery = useQuery({
@@ -1039,6 +1046,32 @@ function SettingsPanel({
         <div className="settings-section-title">
           <Play size={14} />
           Pipeline
+        </div>
+        <div className="settings-row" style={{ marginBottom: 8 }}>
+          <div>
+            <button
+              className="primary-button"
+              disabled={triggerMutation.isPending}
+              onClick={() => triggerMutation.mutate()}
+              type="button"
+            >
+              <Play size={14} />
+              {triggerMutation.isPending ? "Lancement…" : "Lancer le pipeline complet"}
+            </button>
+            {triggerResult !== null ? (
+              <span className={triggerResult.ok ? "inline-ok" : "inline-error"}>
+                {triggerResult.message}
+              </span>
+            ) : null}
+            {triggerMutation.isError ? (
+              <span className="inline-error">
+                {triggerMutation.error instanceof Error ? triggerMutation.error.message : "Erreur"}
+              </span>
+            ) : null}
+          </div>
+        </div>
+        <div className="settings-section-title" style={{ marginBottom: 4, fontSize: 11, color: "var(--text-muted)" }}>
+          Étapes individuelles
         </div>
         <div className="settings-row">
           <div>
