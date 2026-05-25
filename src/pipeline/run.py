@@ -14,6 +14,7 @@ from src.filtering.permis import requires_valid_permis_g
 from src.lib.config import get_database_settings
 from src.lib.logging import configure_logging, get_logger
 from src.scrapers.base import Offer, SearchQuery
+from src.scrapers.indeed import IndeedScraper
 from src.scrapers.jobs import JobsScraper
 from src.scrapers.jobup import JobupScraper
 
@@ -139,13 +140,13 @@ async def async_main(max_results: int, dry_run: bool) -> None:
     configure_logging(settings.log_level)
     repository = None if dry_run else SupabaseOfferRepository.from_settings(settings)
     query = SearchQuery(max_results=max_results)
-    scrapers: list[OfferScraper] = [JobupScraper(), JobsScraper()]
+    scrapers: list[OfferScraper] = [JobupScraper(), JobsScraper(), IndeedScraper()]
     for scraper in scrapers:
         await ingest_jobup_offers(scraper, repository, query=query, dry_run=dry_run)
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Ingestion jobup + jobs.ch vers Supabase.")
+    parser = argparse.ArgumentParser(description="Ingestion jobup + jobs.ch + indeed vers Supabase.")
     parser.add_argument("--max", type=int, default=DEFAULT_MAX_RESULTS, dest="max_results")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
