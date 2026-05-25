@@ -29,6 +29,12 @@ Appliquer d'abord `src/db/migrations/0001_init.sql` dans Supabase, puis remplir
 python -m src.db.smoke_test
 ```
 
+## Vérification Ticket 3
+
+```bash
+python -m src.scrapers.jobup --max 5
+```
+
 ## Règle produit
 
 Le système ne doit jamais envoyer d'email automatiquement.

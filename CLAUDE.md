@@ -155,7 +155,7 @@ playwright install chromium
 cp .env.example .env
 
 # Run scraper unique
-python -m scrapers.jobup --max 50
+python -m src.scrapers.jobup --max 50
 
 # Run pipeline complet (dry-run)
 python -m pipeline.run --dry-run
