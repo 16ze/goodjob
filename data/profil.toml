@@ -1,0 +1,42 @@
+[identite]
+nom = "Bryan Hilaire"
+localisation = "Belfort, France"
+statut = "Travailleur frontalier disponible pour un poste en Suisse frontalière."
+
+[permis]
+frontalier_g = "Mon permis frontalier G est à réactiver à l’embauche, démarche habituelle effectuée par l’employeur auprès du canton."
+
+[mobilite]
+base = "Belfort"
+zones_cibles = [
+  "Jura",
+  "Jura bernois",
+  "Neuchâtel ouest",
+  "Delémont",
+  "Porrentruy",
+  "Saignelégier",
+  "Moutier",
+  "Tavannes",
+  "Saint-Imier",
+  "La Chaux-de-Fonds",
+]
+contraintes = [
+  "Priorité aux postes accessibles depuis Belfort.",
+  "Mobilité à confirmer selon horaires, distance et conditions du poste.",
+]
+
+[profil]
+resume = "Profil orienté vente, conseil et relation client, avec une recherche ciblée sur les postes de vendeur, conseiller de vente ou employé de commerce en Suisse frontalière."
+experiences = [
+  "Expériences réelles en vente et contact client à valoriser sans exagération.",
+  "Accueil, écoute du besoin, conseil, suivi et relation de confiance avec les clients.",
+]
+competences = [
+  "Vente",
+  "Conseil client",
+  "Relation client",
+  "Accueil",
+  "Écoute active",
+  "Fiabilité",
+  "Adaptation",
+]

@@ -25,15 +25,29 @@ class ExecutableQuery(Protocol):
 
 
 class FilterQuery(Protocol):
-    """Query builder filtrable Supabase."""
+    """Query builder Supabase filtrable et limitable."""
+
+    def eq(self, column: str, value: object) -> Self: ...
+
+    def gte(self, column: str, value: object) -> Self: ...
+
+    def is_(self, column: str, value: str) -> Self: ...
 
     def limit(self, count: int) -> ExecutableQuery: ...
+
+
+class UpdateQuery(Protocol):
+    """Query builder update Supabase."""
+
+    def eq(self, column: str, value: object) -> ExecutableQuery: ...
 
 
 class SelectQuery(Protocol):
     """Query builder select Supabase."""
 
-    def eq(self, column: str, value: str) -> FilterQuery: ...
+    def eq(self, column: str, value: object) -> FilterQuery: ...
+
+    def gte(self, column: str, value: object) -> FilterQuery: ...
 
 
 class OffersTable(Protocol):
@@ -42,6 +56,8 @@ class OffersTable(Protocol):
     def upsert(self, json: JSON, *, on_conflict: str) -> ExecutableQuery: ...
 
     def select(self, columns: str) -> SelectQuery: ...
+
+    def update(self, json: JSON) -> UpdateQuery: ...
 
 
 class SupabaseClientLike(Protocol):
@@ -156,6 +172,94 @@ class SupabaseOfferRepository:
         rows = _read_response_rows(response.data)
         if not rows:
             return None
+        return OfferRow.model_validate(rows[0])
+
+    def get_new_unscored_offers(self, limit: int) -> list[OfferRow]:
+        """Récupère les offres nouvelles qui n'ont pas encore été scorées."""
+
+        response = (
+            self._client.table("offres")
+            .select("*")
+            .eq("statut", "nouveau")
+            .is_("score_match", "null")
+            .limit(limit)
+            .execute()
+        )
+        return [OfferRow.model_validate(row) for row in _read_response_rows(response.data)]
+
+    def get_letter_candidates(self, limit: int, *, force: bool = False) -> list[OfferRow]:
+        """Récupère les offres matchantes éligibles à une génération de lettre."""
+
+        query = (
+            self._client.table("offres")
+            .select("*")
+            .gte("score_match", 65)
+        )
+        if not force:
+            query = query.is_("lettre_generee", "null")
+
+        response = query.limit(limit).execute()
+        return [OfferRow.model_validate(row) for row in _read_response_rows(response.data)]
+
+    def update_offer_score(self, offer_id: str, score_match: int, raison_score: str) -> OfferRow:
+        """Persiste le score OpenAI validé pour une offre."""
+
+        payload: dict[str, object] = {
+            "score_match": score_match,
+            "raison_score": raison_score,
+        }
+        response = (
+            self._client.table("offres")
+            .update(cast(JSON, payload))
+            .eq("id", offer_id)
+            .execute()
+        )
+        rows = _read_response_rows(response.data)
+        if len(rows) != 1:
+            raise RuntimeError(f"Supabase update offres a retourné {len(rows)} lignes")
+        return OfferRow.model_validate(rows[0])
+
+    def update_offer_letter(self, offer_id: str, lettre_generee: str) -> OfferRow:
+        """Persiste la lettre générée après validation Pydantic de la réponse OpenAI."""
+
+        payload: dict[str, object] = {"lettre_generee": lettre_generee}
+        response = (
+            self._client.table("offres")
+            .update(cast(JSON, payload))
+            .eq("id", offer_id)
+            .execute()
+        )
+        rows = _read_response_rows(response.data)
+        if len(rows) != 1:
+            raise RuntimeError(f"Supabase update offres a retourné {len(rows)} lignes")
+        return OfferRow.model_validate(rows[0])
+
+    def get_notion_sync_candidates(self, limit: int) -> list[OfferRow]:
+        """Récupère les offres scorées dont la page Notion n'a pas encore été créée."""
+
+        response = (
+            self._client.table("offres")
+            .select("*")
+            .gte("score_match", 65)
+            .is_("notion_page_id", "null")
+            .limit(limit)
+            .execute()
+        )
+        return [OfferRow.model_validate(row) for row in _read_response_rows(response.data)]
+
+    def update_offer_notion_page(self, offer_id: str, notion_page_id: str) -> OfferRow:
+        """Persiste l'ID de la page Notion fraichement créée pour une offre."""
+
+        payload: dict[str, object] = {"notion_page_id": notion_page_id}
+        response = (
+            self._client.table("offres")
+            .update(cast(JSON, payload))
+            .eq("id", offer_id)
+            .execute()
+        )
+        rows = _read_response_rows(response.data)
+        if len(rows) != 1:
+            raise RuntimeError(f"Supabase update offres a retourné {len(rows)} lignes")
         return OfferRow.model_validate(rows[0])
 
 

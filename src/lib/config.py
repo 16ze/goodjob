@@ -20,10 +20,15 @@ class DatabaseSettings(BaseSettings):
     )
 
 
-class Settings(DatabaseSettings):
-    """Configuration complète du pipeline validée au démarrage."""
+class OpenAISettings(DatabaseSettings):
+    """Configuration minimale pour les tickets IA sans exiger les integrations futures."""
 
     openai_api_key: SecretStr = Field(alias="OPENAI_API_KEY")
+
+
+class Settings(OpenAISettings):
+    """Configuration complète du pipeline validée au démarrage."""
+
     gmail_client_id: str = Field(alias="GMAIL_CLIENT_ID")
     gmail_client_secret: SecretStr = Field(alias="GMAIL_CLIENT_SECRET")
     gmail_refresh_token: SecretStr = Field(alias="GMAIL_REFRESH_TOKEN")
@@ -43,3 +48,10 @@ def get_database_settings() -> DatabaseSettings:
     """Retourne la configuration Supabase sans exiger les secrets des tickets futurs."""
 
     return DatabaseSettings()
+
+
+@lru_cache(maxsize=1)
+def get_openai_settings() -> OpenAISettings:
+    """Retourne la configuration Supabase + OpenAI sans exiger Gmail ou Notion."""
+
+    return OpenAISettings()
