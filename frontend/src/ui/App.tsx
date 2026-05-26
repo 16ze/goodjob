@@ -72,6 +72,13 @@ import type {
 } from "./types";
 
 type ViewMode = "dashboard" | "pipeline" | "responses" | "settings";
+
+function scoreTier(score: number | null): "high" | "mid" | "low" | "none" {
+  if (score === null) return "none";
+  if (score >= 70) return "high";
+  if (score >= 50) return "mid";
+  return "low";
+}
 type PipelineFilter = "all" | "ready" | "missing" | "sent";
 type SortMode = "score_desc" | "score_asc" | "date_desc" | "date_asc";
 
@@ -360,8 +367,8 @@ function Dashboard({ onLogout }: { onLogout: () => void }): JSX.Element {
 
       <section className="workspace">
         <header className="topbar">
-          <div className="topbar-left">
-            {/* Mobile hamburger */}
+          {/* Mobile: compact brand */}
+          <div className="topbar-brand-mobile">
             <button
               className="hamburger-btn"
               onClick={() => setSidebarOpen((v) => !v)}
@@ -370,11 +377,15 @@ function Dashboard({ onLogout }: { onLogout: () => void }): JSX.Element {
             >
               <Menu size={20} />
             </button>
-            <div>
-              <p className="eyebrow">Mode production contrôlée</p>
-              <h1>Chaque candidature part après validation.</h1>
-            </div>
+            <span className="topbar-app-name">GoodJob</span>
           </div>
+
+          {/* Desktop: full heading */}
+          <div className="topbar-heading-desktop">
+            <p className="eyebrow">Mode production contrôlée</p>
+            <h1>Chaque candidature part seulement après validation.</h1>
+          </div>
+
           <div className="topbar-actions">
             <button
               className="ghost-button"
@@ -383,8 +394,7 @@ function Dashboard({ onLogout }: { onLogout: () => void }): JSX.Element {
               type="button"
             >
               <RefreshCcw size={16} />
-              <span style={{ display: "none" }} className="sr-only">Actualiser</span>
-              Actualiser
+              <span className="btn-label-desktop">Actualiser</span>
             </button>
             <button className="ghost-button" onClick={onLogout} title="Se déconnecter" type="button">
               <Lock size={16} />
@@ -440,6 +450,13 @@ function Dashboard({ onLogout }: { onLogout: () => void }): JSX.Element {
           />
         ) : null}
       </section>
+
+      {/* Mobile bottom tab bar */}
+      <MobileTabBar
+        viewMode={viewMode}
+        badgeCount={pipelineBadgeCount(dashboard.offers)}
+        onChange={setViewMode}
+      />
     </main>
   );
 }
@@ -756,7 +773,7 @@ function PipelineView({
               onClick={() => onOfferSelected(offer.id)}
               type="button"
             >
-              <span className="score">{offer.score_match ?? "—"}</span>
+              <span className={`score score--${scoreTier(offer.score_match)}`}>{offer.score_match ?? "—"}</span>
               <span className="pipeline-item-content">
                 <strong>{offer.titre}</strong>
                 <small>{offer.entreprise ?? "Entreprise inconnue"} · {offer.lieu ?? "Lieu non renseigné"}</small>
@@ -1679,6 +1696,54 @@ function OfferDetail({
         )}
       </section>
     </article>
+  );
+}
+
+function MobileTabBar({
+  viewMode,
+  badgeCount,
+  onChange
+}: {
+  viewMode: ViewMode;
+  badgeCount: number;
+  onChange: (v: ViewMode) => void;
+}): JSX.Element {
+  return (
+    <nav aria-label="Navigation principale" className="mobile-tabbar">
+      <button
+        className={`mobile-tab${viewMode === "dashboard" ? " mobile-tab--active" : ""}`}
+        onClick={() => onChange("dashboard")}
+        type="button"
+      >
+        <Gauge size={24} />
+        <span>Dashboard</span>
+      </button>
+      <button
+        className={`mobile-tab${viewMode === "pipeline" ? " mobile-tab--active" : ""}`}
+        onClick={() => onChange("pipeline")}
+        type="button"
+      >
+        <Table2 size={24} />
+        <span>Pipeline</span>
+        {badgeCount > 0 ? <span className="mobile-tab-badge">{badgeCount}</span> : null}
+      </button>
+      <button
+        className={`mobile-tab${viewMode === "responses" ? " mobile-tab--active" : ""}`}
+        onClick={() => onChange("responses")}
+        type="button"
+      >
+        <Activity size={24} />
+        <span>Réponses</span>
+      </button>
+      <button
+        className={`mobile-tab${viewMode === "settings" ? " mobile-tab--active" : ""}`}
+        onClick={() => onChange("settings")}
+        type="button"
+      >
+        <SlidersHorizontal size={24} />
+        <span>Réglages</span>
+      </button>
+    </nav>
   );
 }
 
