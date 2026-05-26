@@ -17,6 +17,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from src.ai.generate_letter import OpenAIJobLetterGenerator, build_openai_letter_generator, generate_letters_for_matching_offers
 from src.ai.score import OpenAIJobScorer, build_openai_scorer, score_new_offers
+from src.integrations.email_finder import find_company_email_sync
 from src.db.client import OfferRow, ParametersRow, SupabaseOfferRepository
 from src.integrations.gmail import GmailClient
 from src.lib.config import AuthSettings, OpenAISettings, Settings, get_auth_settings, get_openai_settings, get_settings
@@ -675,6 +676,26 @@ def trigger_pipeline_score(
     except Exception as exc:
         repository.insert_pipeline_log("score", error=str(exc))
         raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+@app.post("/api/pipeline/find_emails", response_model=PipelineResultDto)
+def trigger_find_emails(repository: RepositoryDep) -> PipelineResultDto:
+    """Cherche les emails manquants sur toutes les offres sans email_destinataire."""
+
+    offers = repository.get_offers_missing_email(limit=50)
+    found = 0
+    for offer in offers:
+        if not offer.get("entreprise"):
+            continue
+        email = find_company_email_sync(
+            str(offer["entreprise"]),
+            str(offer.get("url", "")),
+        )
+        if email:
+            repository.update_offer_email(str(offer["id"]), email)
+            found += 1
+    repository.insert_pipeline_log("find_emails", found)
+    return PipelineResultDto(count_result=found)
 
 
 @app.post("/api/pipeline/letters", response_model=PipelineResultDto)

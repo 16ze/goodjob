@@ -10,6 +10,7 @@ from openai import OpenAI
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from src.db.client import OfferRow, SupabaseOfferRepository
+from src.integrations.email_finder import find_company_email_sync
 from src.lib.config import OpenAISettings, get_openai_settings
 from src.lib.logging import configure_logging, get_logger
 
@@ -179,14 +180,32 @@ def score_new_offers(
             raison_score=score.raison,
         )
 
-        if offer.email_destinataire is None and offer.description_brute:
-            extracted = extract_email_from_text(offer.description_brute)
-            if extracted is not None:
-                repository.update_offer_email(offer.id, extracted)
+        if offer.email_destinataire is None:
+            # 1. Extraction depuis la description
+            email: str | None = None
+            if offer.description_brute:
+                email = extract_email_from_text(offer.description_brute)
+
+            # 2. Scraping du site entreprise si pas trouvé dans la description
+            if email is None and offer.entreprise:
+                email = find_company_email_sync(
+                    offer.entreprise,
+                    offer.url,
+                )
+                if email:
+                    logger.info(
+                        "offer_email_scraped",
+                        offer_id=offer.id,
+                        entreprise=offer.entreprise,
+                        email=email,
+                    )
+
+            if email is not None:
+                repository.update_offer_email(offer.id, email)
                 logger.info(
-                    "offer_email_extracted",
+                    "offer_email_saved",
                     offer_id=offer.id,
-                    email=extracted,
+                    email=email,
                 )
 
         scored_count += 1

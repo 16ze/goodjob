@@ -424,6 +424,19 @@ class SupabaseOfferRepository:
             )
         ][:limit]
 
+    def get_offers_missing_email(self, limit: int = 50) -> list[dict[str, object]]:
+        """Retourne les offres sans email_destinataire et avec une entreprise renseignée."""
+
+        response = (
+            self._client.table("offres")
+            .select("id, entreprise, url")
+            .is_("email_destinataire", "null")  # type: ignore[attr-defined]
+            .limit(limit)
+            .execute()
+        )
+        rows = response.data or []
+        return [r for r in rows if r.get("entreprise")]
+
     def get_email_send_candidates(self, limit: int, *, score_threshold: int) -> list[OfferRow]:
         """Récupère les offres prêtes à un envoi manuel de candidature."""
 

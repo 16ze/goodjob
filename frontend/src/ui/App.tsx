@@ -52,6 +52,7 @@ import {
   sendOffer,
   testCV,
   testGmail,
+  triggerFindEmails,
   triggerLetters,
   triggerNotion,
   triggerPipeline,
@@ -904,6 +905,7 @@ function SettingsPanel({
   const [scoreResult, setScoreResult] = useState<PipelineResultDto | null>(null);
   const [lettersResult, setLettersResult] = useState<PipelineResultDto | null>(null);
   const [notionResult, setNotionResult] = useState<PipelineResultDto | null>(null);
+  const [emailsResult, setEmailsResult] = useState<PipelineResultDto | null>(null);
   const [triggerResult, setTriggerResult] = useState<{ ok: boolean; message: string } | null>(null);
 
   const gmailMutation = useMutation({
@@ -934,6 +936,11 @@ function SettingsPanel({
   const triggerMutation = useMutation({
     mutationFn: triggerPipeline,
     onSuccess: setTriggerResult
+  });
+
+  const emailsMutation = useMutation({
+    mutationFn: triggerFindEmails,
+    onSuccess: setEmailsResult
   });
 
   const logsQuery = useQuery({
@@ -1120,6 +1127,20 @@ function SettingsPanel({
             </button>
             {notionResult !== null ? (
               <span className="inline-ok">{notionResult.count_result} pages créées</span>
+            ) : null}
+          </div>
+          <div>
+            <button
+              className="ghost-button"
+              disabled={emailsMutation.isPending}
+              onClick={() => emailsMutation.mutate()}
+              type="button"
+            >
+              <Mail size={14} />
+              {emailsMutation.isPending ? "Recherche…" : "Trouver les emails manquants"}
+            </button>
+            {emailsResult !== null ? (
+              <span className="inline-ok">{emailsResult.count_result} emails trouvés</span>
             ) : null}
           </div>
         </div>

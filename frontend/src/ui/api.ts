@@ -223,6 +223,11 @@ export async function fetchPipelineLogs(): Promise<PipelineRunDto[]> {
   return readJson<PipelineRunDto[]>(response);
 }
 
+export async function triggerFindEmails(): Promise<PipelineResultDto> {
+  const response = await apiFetch("/api/pipeline/find_emails", { method: "POST" });
+  return readJson<PipelineResultDto>(response);
+}
+
 export async function triggerPipeline(): Promise<{ ok: boolean; message: string }> {
   const response = await apiFetch("/api/pipeline/trigger", { method: "POST" });
   return readJson<{ ok: boolean; message: string }>(response);
