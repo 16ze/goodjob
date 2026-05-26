@@ -16,6 +16,7 @@ import {
   Lock,
   LockOpen,
   Mail,
+  Menu,
   Play,
   RefreshCcw,
   RotateCcw,
@@ -216,6 +217,7 @@ function Dashboard({ onLogout }: { onLogout: () => void }): JSX.Element {
   const [testMode, setTestMode] = useState(false);
   const [testEmail, setTestEmail] = useState("");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const selectedOffer = useMemo(() => {
     if (dashboard === undefined) {
@@ -272,7 +274,13 @@ function Dashboard({ onLogout }: { onLogout: () => void }): JSX.Element {
 
   return (
     <main className={`app-shell${sidebarCollapsed ? " sidebar-collapsed" : ""}`}>
-      <aside className={`sidebar${sidebarCollapsed ? " sidebar--collapsed" : ""}`}>
+      {/* Mobile backdrop */}
+      <div
+        className={`sidebar-overlay${sidebarOpen ? " sidebar-overlay--visible" : ""}`}
+        onClick={() => setSidebarOpen(false)}
+      />
+
+      <aside className={`sidebar${sidebarCollapsed ? " sidebar--collapsed" : ""}${sidebarOpen ? " sidebar--open" : ""}`}>
         <div className="sidebar-header">
           <div className="brand">
             <div className="brand-mark">GJ</div>
@@ -283,6 +291,7 @@ function Dashboard({ onLogout }: { onLogout: () => void }): JSX.Element {
               </div>
             )}
           </div>
+          {/* Desktop collapse toggle */}
           <button
             className="sidebar-toggle"
             onClick={() => setSidebarCollapsed((v) => !v)}
@@ -309,7 +318,7 @@ function Dashboard({ onLogout }: { onLogout: () => void }): JSX.Element {
         <nav className="nav-tabs">
           <button
             className={viewMode === "dashboard" ? "active" : ""}
-            onClick={() => setViewMode("dashboard")}
+            onClick={() => { setViewMode("dashboard"); setSidebarOpen(false); }}
             title="Dashboard"
             type="button"
           >
@@ -318,7 +327,7 @@ function Dashboard({ onLogout }: { onLogout: () => void }): JSX.Element {
           </button>
           <button
             className={viewMode === "pipeline" ? "active" : ""}
-            onClick={() => setViewMode("pipeline")}
+            onClick={() => { setViewMode("pipeline"); setSidebarOpen(false); }}
             title="Pipeline"
             type="button"
           >
@@ -330,7 +339,7 @@ function Dashboard({ onLogout }: { onLogout: () => void }): JSX.Element {
           </button>
           <button
             className={viewMode === "responses" ? "active" : ""}
-            onClick={() => setViewMode("responses")}
+            onClick={() => { setViewMode("responses"); setSidebarOpen(false); }}
             title="Réponses"
             type="button"
           >
@@ -339,7 +348,7 @@ function Dashboard({ onLogout }: { onLogout: () => void }): JSX.Element {
           </button>
           <button
             className={viewMode === "settings" ? "active" : ""}
-            onClick={() => setViewMode("settings")}
+            onClick={() => { setViewMode("settings"); setSidebarOpen(false); }}
             title="Paramètres"
             type="button"
           >
@@ -351,11 +360,22 @@ function Dashboard({ onLogout }: { onLogout: () => void }): JSX.Element {
 
       <section className="workspace">
         <header className="topbar">
-          <div>
-            <p className="eyebrow">Mode production contrôlée</p>
-            <h1>Chaque candidature part seulement après validation.</h1>
+          <div className="topbar-left">
+            {/* Mobile hamburger */}
+            <button
+              className="hamburger-btn"
+              onClick={() => setSidebarOpen((v) => !v)}
+              title="Menu"
+              type="button"
+            >
+              <Menu size={20} />
+            </button>
+            <div>
+              <p className="eyebrow">Mode production contrôlée</p>
+              <h1>Chaque candidature part après validation.</h1>
+            </div>
           </div>
-          <div style={{ display: "flex", gap: "8px" }}>
+          <div className="topbar-actions">
             <button
               className="ghost-button"
               disabled={dashboardQuery.isFetching}
@@ -363,6 +383,7 @@ function Dashboard({ onLogout }: { onLogout: () => void }): JSX.Element {
               type="button"
             >
               <RefreshCcw size={16} />
+              <span style={{ display: "none" }} className="sr-only">Actualiser</span>
               Actualiser
             </button>
             <button className="ghost-button" onClick={onLogout} title="Se déconnecter" type="button">
@@ -736,13 +757,15 @@ function PipelineView({
               type="button"
             >
               <span className="score">{offer.score_match ?? "—"}</span>
-              <span>
+              <span className="pipeline-item-content">
                 <strong>{offer.titre}</strong>
                 <small>{offer.entreprise ?? "Entreprise inconnue"} · {offer.lieu ?? "Lieu non renseigné"}</small>
               </span>
-              <span className={`badge badge-statut-${offer.statut}`}>{statusLabel(offer.statut)}</span>
-              <span className={`badge ${offer.email_destinataire ? "badge-email-ok" : "badge-email-missing"}`}>
-                {offer.email_destinataire ?? "Email manquant"}
+              <span className="pipeline-item-badges">
+                <span className={`badge badge-statut-${offer.statut}`}>{statusLabel(offer.statut)}</span>
+                <span className={`badge ${offer.email_destinataire ? "badge-email-ok" : "badge-email-missing"}`}>
+                  {offer.email_destinataire ?? "Email manquant"}
+                </span>
               </span>
             </button>
           ))}
